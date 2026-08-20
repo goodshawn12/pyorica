@@ -145,8 +145,8 @@ benchmarks/results/run_20260527_120000/
 | `ms_iir` | Mean-square energy after IIR |
 | `ms_asr` | Mean-square energy after ASR |
 | `ms_orica` | Mean-square energy after ORICA |
-| `pct_asr` | % energy reduction: ASR vs IIR |
-| `pct_orica` | % energy reduction: ORICA vs IIR |
+| `pct_asr` | % energy retained after ASR, relative to IIR (`ms_asr / ms_iir × 100`; lower = more removed) |
+| `pct_orica` | % energy retained after ORICA, relative to IIR (`ms_orica / ms_iir × 100`; lower = more removed) |
 
 **IC class timeline (`{subject}_ic_class_timeline.png`):**
 
