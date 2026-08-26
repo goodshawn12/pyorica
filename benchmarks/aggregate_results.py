@@ -22,7 +22,7 @@ IC_LABELS = ["brain", "muscle artifact", "eye blink", "heart beat", "line noise"
 
 
 def aggregate(run_dir: Path) -> list[dict]:
-    """Compute cross-subject mean ± SD of pct reduction per ICLabel class.
+    """Compute cross-subject mean ± SD of pct energy retained per ICLabel class.
 
     Parameters
     ----------
@@ -107,8 +107,8 @@ def plot_summary(summary: list[dict], out_path: Path) -> None:
 
     ax.set_xticks(x)
     ax.set_xticklabels(labels, rotation=30, ha="right")
-    ax.set_ylabel("% energy reduction vs IIR")
-    ax.set_title("Cross-session artifact reduction: ASR vs ORICA")
+    ax.set_ylabel("% energy retained vs IIR (lower = more removed)")
+    ax.set_title("Cross-session energy retained per IC class: ASR vs ORICA")
     ax.axhline(0, color="black", linewidth=0.8, linestyle="--")
     ax.legend()
     ax.grid(axis="y", alpha=0.3)
