@@ -636,7 +636,12 @@ def asr_process(data, sfreq, M, T, windowlen=0.5, lookahead=0.25, stepsize=32,
             # set the reconstruction matrix (ie. reconstructing artifact
             # components using the mixing matrix)
             if not trivial:
-                inv = pinv(np.multiply(keep[:, np.newaxis], V.T @ M))
+                # scipy pinv: numpy.linalg.pinv's default rcond (1e-15) can fail
+                # to truncate the exactly-zero singular value created by the
+                # keep-row zeroing (LAPACK rounds it to ~1e-14 > cutoff), which
+                # injects a ~1e13 gain into R and produces transient output
+                # spikes of ~1e15 uV. scipy's tolerance handles this correctly.
+                inv = linalg.pinv(np.multiply(keep[:, np.newaxis], V.T @ M))
                 R = np.real(M @ inv @ V.T)
             else:
                 R = np.eye(C)
