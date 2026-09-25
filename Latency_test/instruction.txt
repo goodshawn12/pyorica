@@ -1,0 +1,47 @@
+# Latency test — how to run
+
+## Setup
+
+cd D:\work\Python_Project\pyorica
+.\.venv\Scripts\Activate.ps1
+
+# Input data root (NCTU subjects: s01/s01_resampled.set, ...)
+$env:PYORICA_NCTU_DATA = "D:\work\Python_Project\pyorica\data\input_data"
+
+## Run (one subject, one chunk size)
+
+# --output-dir is only the parent. Subfolder is built from the other flags:
+#   s01 + chunk 250 + stream 0  →  Latency_test/results/s01_chunk250_full
+python Latency_test/run_latency_test.py --subject s15 --chunk-size 250 --stream-seconds 0 --force-iclabel --output-dir Latency_test/results
+
+# Shorter smoke test → Latency_test/results/s01_chunk1000_sec60
+# python Latency_test/run_latency_test.py --subject s01 --chunk-size 1000 --stream-seconds 60 --output-dir Latency_test/results
+
+## Flags
+
+# --subject          subject under PYORICA_NCTU_DATA (default: s01)
+# --chunk-size N     samples per chunk (overrides yaml). @250 Hz: 250=1s, 1000=4s
+# --stream-seconds S online length after calib; 0 = FULL recording (default)
+# --output-dir DIR   parent folder only (default: Latency_test/results).
+#                    Subfolder auto: <subject>_chunk<N>_full  or  _sec<S>
+# --force-iclabel    run ICLabel even if chunk < ~3.5s
+# --config PATH      default: benchmarks/config/reference.yaml
+
+## Outputs (in --output-dir)
+
+# latency_table_row.csv   — one row: ASR / ORICA / ICLabel / Total (mean, std, "m ± s")
+# latency_table_row.png   — bar chart for that row
+# latency_realtime.png    — per-chunk realtime plot
+# latency_per_chunk.csv   — detailed per-chunk timings (for aggregation scripts)
+# latency_report.txt, run_meta.yaml, latency_summary.csv, config.yaml
+
+## Aggregate (all subjects × chunk sizes → Overleaf table + figures)
+
+# After many sXX_chunk{N}_full runs exist under Latency_test/results:
+python Latency_test/aggregate_latency_results.py
+# → Latency_test/results/aggregate/
+#    latency_all_runs.csv
+#    latency_table_by_chunk.csv / .tex / .md   (mean±SD across sessions)
+#    latency_by_chunk_bars.png
+#    latency_cross_session_variability.png
+#    latency_by_chunk_boxplot.png
