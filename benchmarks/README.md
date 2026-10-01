@@ -197,6 +197,39 @@ Produces `s1_ic_source_energy.csv` and `s1_ic_class_timeline.png` in the output 
 
 ---
 
+## Analysis scripts (`benchmarks/analysis/`)
+
+Post-hoc analysis tools that operate on the per-IC energy CSVs written by a
+benchmark run. They never re-run the pipeline — any metric can be recomputed
+from a finished run directory in seconds.
+
+### Selectivity index (`selectivity_analysis.py`)
+
+Computes the artifact–brain selectivity of each processing stage (overall and
+per ICLabel class) for one run directory, and writes `selectivity_summary.csv`
+next to the subject CSVs:
+
+```bash
+python benchmarks/analysis/selectivity_analysis.py --run-dir benchmarks/results/<run>
+```
+
+Sign convention: log power reduction is reported as
+`R_k = 10*log10(P_IIR / P_stage)` — larger values mean stronger attenuation.
+
+### Config comparison (`compare_configs.py`)
+
+Statistically compares two finished run directories with paired Wilcoxon
+signed-rank tests (per-subject pooled delta plus per-class median retention for
+brain/eye/muscle/other; subjects missing a class are excluded pairwise):
+
+```bash
+python benchmarks/analysis/compare_configs.py     --run-a benchmarks/results/<runA> --label-a ref     --run-b benchmarks/results/<runB> --label-b tau10
+```
+
+Reports raw p-values and median-difference effect sizes for each measure.
+
+---
+
 ## Known divergences from the original ORICA pipeline
 
 | Aspect | Original | pyorica |
