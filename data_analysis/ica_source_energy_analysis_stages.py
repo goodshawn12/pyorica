@@ -1,13 +1,13 @@
 """
-与 ica_source_energy_analysis_correctly.py 相同的 ICA / ICLabel / 能量分析。
+Same ICA / ICLabel / energy analysis as ica_source_energy_analysis_correctly.py.
 
-输入不再是分开的 b*eeg_iir1/asr1/orica1.npz，而是一个 stages npz
-（raw / iir / asr / orica / ch_names / sfreq），例如
-benchmarks/result/all/s01_iclabel_interval__asr_fit/s01_stages.npz。
+Input is no longer separate b*eeg_iir1/asr1/orica1.npz files, but one stages npz
+(raw / iir / asr / orica / ch_names / sfreq), e.g.
+benchmarks/result/all/s01_iclabel_interval__asr_fit/s01_stages.npz.
 
-输出写到 data_analysis/result/<stages文件名>/...
+Output is written to data_analysis/result/<stages_stem>/...
 
-运行：
+Run:
     python data_analysis/ica_source_energy_analysis_stages.py
     python data_analysis/ica_source_energy_analysis_stages.py --stages path/to/s01_stages.npz
 """
@@ -50,8 +50,8 @@ CONTINUE_ON_ERROR = True
 WINDOW_SEC = 10.0
 
 #1asr20_2min_70
-# 解混之后排除的时间段（秒，原始时间轴）。空列表 = 不排除。
-# 例：[(0.0, 120.0)] 表示前 120s 不参与源 MS 统计（ICA 仍用全长）。
+# Time ranges to exclude after unmixing (seconds, original time axis). Empty list = no exclusion.
+# Example: [(0.0, 120.0)] means the first 120s are excluded from source MS stats (ICA still uses full length).
 # #07
 #EXCLUDE_TIME_RANGES_S: List[Tuple[float, float]] = [(0,32), (122,133), (445,447), (794,795), (983,1039), (1149,1185)]
 # # #09
@@ -113,9 +113,9 @@ WINDOW_SEC = 10.0
 # EXCLUDE_TIME_RANGES_S: List[Tuple[float, float]] = [(0,92), (123,206), (396,439), (726,791), (1071,1082), (1253,1273)]
 EXCLUDE_TIME_RANGES_S: List[Tuple[float, float]] = [(0,120)]
 
-# 通道筛选（三阶段对齐之后、ICA 之前）。名称与 npz「channels」一致，不区分大小写。
-# INCLUDE_CHANNEL_NAMES 非空：仅保留这些通道（在数据中的出现顺序）。
-# EXCLUDE_CHANNEL_NAMES：从当前候选集合中再剔除。
+# Channel selection (after three-stage alignment, before ICA). Names match npz "channels", case-insensitive.
+# INCLUDE_CHANNEL_NAMES non-empty: keep only these channels (in the order they appear in the data).
+# EXCLUDE_CHANNEL_NAMES: drop these from the current candidate set.
 INCLUDE_CHANNEL_NAMES: Optional[List[str]] = None
 EXCLUDE_CHANNEL_NAMES: List[str] = []
 
@@ -135,9 +135,9 @@ PER_IC_PLOT_YMAX_PCT: Optional[float] = 118.0
 PER_IC_ANNOTATE_OVERFLOW: bool = True
 PER_IC_ANNOTATE_DROPS: bool = False
 
-# 每 IC 三根柱（IIR/ASR/ORICA MS）纵轴：True=log10(MS)，False=线性 MS
+# Per-IC triple bars (IIR/ASR/ORICA MS) y-axis: True=log10(MS), False=linear MS
 USE_LOG_Y_FOR_MS_TRIBAR: bool = True
-# 与上项配合：True 时对纵轴加常数 shift=max(0, floor−min(log10 MS))，使刻度主要在正数区间（等价 log10(MS×10^shift)）
+# With the above: when True, add shift=max(0, floor−min(log10 MS)) so ticks are mostly positive (equiv. log10(MS×10^shift))
 MS_TRIBAR_LOG_SHIFT_TO_POSITIVE: bool = True
 MS_TRIBAR_LOG_Y_FLOOR: float = 0.2
 IC_TOPOMAP_NCOLS: int = 8
@@ -187,7 +187,7 @@ def _sanitize_ch_for_path_token(name: str, *, max_len: int = 28) -> str:
 
 
 def _filename_token_for_removed_channels(removed: Sequence[str]) -> str:
-    """写入输出子目录名；过长时用短前缀 + 数量 + md5，避免 Windows 路径过长。"""
+    """Token for output subdirectory name; if too long, use short prefix + count + md5 to avoid Windows path limits."""
     if not removed:
         return ""
     safe = [_sanitize_ch_for_path_token(str(nm)) for nm in removed]
@@ -212,16 +212,16 @@ def apply_channel_include_exclude(
     exclude: Sequence[str],
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, List[str], List[str], List[str]]:
     """
-    按 INCLUDE / EXCLUDE 裁剪通道维。
+    Trim the channel dimension by INCLUDE / EXCLUDE.
 
-    返回:
-        xi2, xa2, xo2, ch_kept, removed_ordered（相对原始 ch_names 顺序）,
-        missing_include（INCLUDE 中有但数据中未出现的规范化名，用于告警）
+    Returns:
+        xi2, xa2, xo2, ch_kept, removed_ordered (relative to original ch_names order),
+        missing_include (normalized names in INCLUDE not found in data; for warnings)
     """
     n = len(ch_names)
     if xi.shape[0] != n or xa.shape[0] != n or xo.shape[0] != n:
         raise ValueError(
-            f"通道维与 ch_names 不一致: xi{xi.shape} xa{xa.shape} xo{xo.shape} n_ch={n}"
+            f"Channel dim mismatch vs ch_names: xi{xi.shape} xa{xa.shape} xo{xo.shape} n_ch={n}"
         )
 
     all_idx = list(range(n))
@@ -245,8 +245,8 @@ def apply_channel_include_exclude(
 
     if len(keep_idx) < 2:
         raise RuntimeError(
-            f"通道筛选后仅剩 {len(keep_idx)} 路，ICA 至少需要 2 路。"
-            f" removed（前 30 个）={removed_ordered[:30]}"
+            f"After channel selection only {len(keep_idx)} channel(s) remain; ICA needs at least 2."
+            f" removed (first 30)={removed_ordered[:30]}"
         )
 
     k = np.asarray(keep_idx, dtype=np.int64)
@@ -279,7 +279,7 @@ def _output_subdir_name(*, channel_selection_slug: str = "") -> str:
 def _sample_mask_exclude(
     n_tot: int, sfreq: float, ranges: Sequence[Tuple[float, float]]
 ) -> np.ndarray:
-    """True = 参与能量统计；False = EXCLUDE 区间内样本。"""
+    """True = included in energy stats; False = sample inside an EXCLUDE range."""
     mask = np.ones(n_tot, dtype=bool)
     for a, b in ranges:
         if b <= a:
@@ -295,8 +295,8 @@ def _sample_mask_exclude(
 
 def _savefig_longpath_safe(fig: Any, path: Path, **kwargs: Any) -> None:
     """
-    兼容 Windows 长路径的 savefig。
-    优先按普通 Path 保存；若触发 FileNotFoundError，再用 `\\\\?\\` 前缀重试。
+    Windows long-path-safe savefig.
+    Try a normal Path first; on FileNotFoundError, retry with the `\\\\?\\` prefix.
     """
     path.parent.mkdir(parents=True, exist_ok=True)
     try:
@@ -327,7 +327,7 @@ def window_overlaps_exclude(
 
 
 def _per_window_start_seconds(n_win: int, win_samp: int, sfreq: float) -> np.ndarray:
-    """与分窗循环一致：第 wi 窗起点 = wi * win_samp / sfreq（秒）。"""
+    """Same as the windowing loop: start of window wi = wi * win_samp / sfreq (seconds)."""
     return np.arange(n_win, dtype=np.float64) * (win_samp / sfreq)
 
 
@@ -349,7 +349,7 @@ def _per_window_excluded_mask(
 def _draw_exclude_time_spans_on_axis(
     ax: Any, eff_exclude: Sequence[Tuple[float, float]], *, zorder: float = 0.5
 ) -> None:
-    """x 为录音时间（秒）时，标出 EXCLUDE 区间（不重排时间轴）。"""
+    """When x is recording time (seconds), shade EXCLUDE ranges (do not reindex the time axis)."""
     for a, b in eff_exclude:
         lo, hi = float(a), float(b)
         if hi > lo:
@@ -444,7 +444,7 @@ def align_three_stages(
     for name, d in ("asr", eeg_asr), ("orica", eeg_orica):
         if abs(float(d["sampling_rate"]) - sfreq) > 1e-3:
             print(
-                f"[WARN] {name} 采样率 {d['sampling_rate']} != IIR {sfreq}，仍按最小长度对齐。"
+                f"[WARN] {name} sampling rate {d['sampling_rate']} != IIR {sfreq}; still aligning to min length."
             )
     n_ch = min(
         eeg_iir["data"].shape[0],
@@ -460,7 +460,7 @@ def align_three_stages(
     ch_asr = list(eeg_asr["ch_names"])[:n_ch]
     ch_ori = list(eeg_orica["ch_names"])[:n_ch]
     if ch_iir != ch_asr or ch_iir != ch_ori:
-        print("[WARN] 三阶段通道名不完全一致，以 IIR 前 n_ch 个通道名为准。")
+        print("[WARN] Channel names differ across stages; using first n_ch IIR channel names.")
     xi = np.asarray(eeg_iir["data"], dtype=np.float64)[:n_ch, :n_tot].copy()
     xa = np.asarray(eeg_asr["data"], dtype=np.float64)[:n_ch, :n_tot].copy()
     xo = np.asarray(eeg_orica["data"], dtype=np.float64)[:n_ch, :n_tot].copy()
@@ -562,8 +562,8 @@ def _raw_from_array(
             ch_list.append(dst)
         if n_changed > 0:
             print(
-                f"[INFO] 通道名标准化: {n_changed}/{len(ch_list)} "
-                "（如 FP1->Fp1, FZ->Fz）"
+                f"[INFO] Channel name normalization: {n_changed}/{len(ch_list)} "
+                "(e.g. FP1->Fp1, FZ->Fz)"
             )
     except Exception:
         ch_list = ch_list_raw
@@ -582,8 +582,8 @@ def _raw_from_array(
 def _fit_ica_on_raw(raw: Any, random_state: int, ica_max_iter: int) -> Tuple[Any, Optional[str]]:
     from mne.preprocessing import ICA
 
-    # 与 ica_source_energy_analysis_correct.py / test.py 口径一致：
-    # infomax + extended，且 n_components = n_ch - 1
+    # Match ica_source_energy_analysis_correct.py / test.py convention:
+    # infomax + extended; n_components was historically n_ch - 1
     n_ch = len(raw.ch_names)
     #n_comp = max(1, min(n_ch - 1, n_ch))
     n_comp = len(raw.ch_names)
@@ -675,7 +675,7 @@ def compute_reduction_summary_rows(
     else:
         ok = np.asarray(ok_for_stats, dtype=bool)
         if ok.shape[0] != len(pl):
-            raise ValueError("ok_for_stats 长度与 pred_labels 不一致")
+            raise ValueError("ok_for_stats length does not match pred_labels")
 
     drop_asr_iir = 100.0 - pct_a
     drop_ori_iir = 100.0 - pct_o
@@ -799,7 +799,7 @@ def compute_power_weighted_reduction_rows(
     *,
     ok_for_stats: Optional[np.ndarray] = None,
 ) -> List[List[Any]]:
-    """按 IIR 源 MS 加权：类内 sum(w_i * drop_i) / sum(w_i)，w_i = ms_iir[i]。"""
+    """IIR-source-MS weighted: within-class sum(w_i * drop_i) / sum(w_i), w_i = ms_iir[i]."""
     pl = [str(pred_labels[i]) for i in range(len(pred_labels))]
     pct_a = np.asarray(pct_asr, dtype=np.float64)
     pct_o = np.asarray(pct_orica, dtype=np.float64)
@@ -812,7 +812,7 @@ def compute_power_weighted_reduction_rows(
     else:
         ok = np.asarray(ok_for_stats, dtype=bool)
         if ok.shape[0] != len(pl):
-            raise ValueError("ok_for_stats 长度与 pred_labels 不一致")
+            raise ValueError("ok_for_stats length does not match pred_labels")
 
     drop_ai = 100.0 - pct_a
     drop_oi = 100.0 - pct_o
@@ -914,7 +914,7 @@ def _fmt_pp(v: float) -> str:
 
 
 def reduction_summary_power_weighted_caption(rows: List[List[Any]]) -> str:
-    """从 compute_power_weighted_reduction_rows 结果生成标题附加行（英文）。"""
+    """Build title caption lines from compute_power_weighted_reduction_rows (English)."""
     d = {str(r[0]): r for r in rows}
     lines: List[str] = []
     if "artifact_all" in d:
@@ -1071,7 +1071,7 @@ def plot_per_ic_triple_ms_bars(
     *,
     use_log: bool,
 ) -> None:
-    """每 IC 三根柱：IIR / ASR / ORICA 源均方。"""
+    """Per-IC triple bars: IIR / ASR / ORICA source mean square."""
     mi = np.asarray(ms_iir_ord, dtype=np.float64)
     ma = np.asarray(ms_asr_ord, dtype=np.float64)
     mo = np.asarray(ms_ori_ord, dtype=np.float64)
@@ -1164,7 +1164,7 @@ def _ordered_ic_indices(labels: Sequence[str]) -> np.ndarray:
 
 
 def _welch_log_psd_1d(sig: np.ndarray, sfreq: float) -> Tuple[np.ndarray, np.ndarray]:
-    """返回 (freq_hz, 10*log10(PSD))，Welch 功率谱密度。"""
+    """Return (freq_hz, 10*log10(PSD)), Welch power spectral density."""
     from scipy.signal import welch
 
     x = np.asarray(sig, dtype=np.float64).ravel()
@@ -1198,7 +1198,7 @@ def save_ic_topomap_mosaics_three_stages(
     *,
     sfreq: float,
 ) -> None:
-    """按阶段导出 IC topomap + 源 PSD 拼图（风格对齐 correct.py）。"""
+    """Export per-stage IC topomap + source PSD mosaics (style aligned with correct.py)."""
     import matplotlib.pyplot as plt
     from mne_icalabel import label_components
     from mne.viz import plot_topomap
@@ -1301,18 +1301,18 @@ def write_analysis_meta(
     include_requested: Optional[Sequence[str]] = None,
     exclude_requested: Optional[Sequence[str]] = None,
 ) -> None:
-    ex_txt = eff_exclude if eff_exclude else "无"
+    ex_txt = eff_exclude if eff_exclude else "none"
     lines = [
         "ica_source_energy_analysis_correctly.py",
         "",
-        "全长数据上 IIR 拟合 ICA，固定解混；IIR/ASR/ORICA 同索引 IC。不做 ICA 前 crop。",
-        "类汇总「能量加权」：按各 IC 的 IIR 源 MS 对下降百分比 (pp) 加权平均；见 reduction_summary_power_weighted_*.csv。",
-        f"EXCLUDE 区间（秒，仅用于解混后算源 MS 时按时间 mask；ICA/ICLabel 用全长）: {ex_txt}",
-        f"解混后参与 MS 的采样数: {n_keep_for_ms} / {n_tot}",
+        "Fit ICA on full-length IIR, freeze unmixing; IIR/ASR/ORICA share the same IC indices. No pre-ICA crop.",
+        "Class summary \"energy-weighted\": IIR source MS weighted mean of drop (pp) per IC; see reduction_summary_power_weighted_*.csv.",
+        f"EXCLUDE ranges (s; time-mask only when computing post-unmix source MS; ICA/ICLabel use full length): {ex_txt}",
+        f"Samples kept for post-unmix MS: {n_keep_for_ms} / {n_tot}",
         "",
-        f"输入 npz 文件名后缀: {eeg_npz_filename_suffix!r}",
-        f"参考路径（传统 same_save 树，可不存在）: {legacy_ref_dir}",
-        f"本次输出目录: {output_run_dir}",
+        f"Input npz filename suffix: {eeg_npz_filename_suffix!r}",
+        f"Reference path (legacy same_save tree; may not exist): {legacy_ref_dir}",
+        f"Output directory for this run: {output_run_dir}",
         f"n_ic={n_ic}, n_samples={n_tot}, sfreq={sfreq}",
         f"WINDOW_SEC: {WINDOW_SEC}",
         f"USE_LOG_Y_FOR_MS_TRIBAR: {USE_LOG_Y_FOR_MS_TRIBAR}",
@@ -1322,13 +1322,13 @@ def write_analysis_meta(
         f"MAX_PCT_VS_IIR_FOR_STATS: {MAX_PCT_VS_IIR_FOR_STATS}",
     ]
     if include_requested is not None and len(list(include_requested)) > 0:
-        lines.append(f"INCLUDE_CHANNEL_NAMES（请求）: {list(include_requested)}")
+        lines.append(f"INCLUDE_CHANNEL_NAMES (requested): {list(include_requested)}")
     if exclude_requested is not None and len(list(exclude_requested)) > 0:
-        lines.append(f"EXCLUDE_CHANNEL_NAMES（请求）: {list(exclude_requested)}")
+        lines.append(f"EXCLUDE_CHANNEL_NAMES (requested): {list(exclude_requested)}")
     if channels_removed is not None and len(list(channels_removed)) > 0:
-        lines.append(f"实际未参与 ICA 的通道（相对对齐后全表）: {list(channels_removed)}")
+        lines.append(f"Channels not used for ICA (vs aligned full set): {list(channels_removed)}")
     if channels_kept is not None:
-        lines.append(f"参与 ICA 的通道（顺序）: {list(channels_kept)}")
+        lines.append(f"Channels used for ICA (order): {list(channels_kept)}")
     path.write_text("\n".join(lines) + "\n", encoding="utf-8-sig")
 
 
@@ -1338,15 +1338,15 @@ def run_one(stages_path: Path) -> Path:
         from matplotlib import colors as mcolors
         from mne_icalabel import label_components
     except ImportError as e:
-        print("需要: pip install matplotlib mne mne-icalabel")
+        print("Required: pip install matplotlib mne mne-icalabel")
         raise SystemExit(1) from e
 
     _setup_matplotlib_font()
 
     stages_path = Path(stages_path).resolve()
     if not stages_path.is_file():
-        raise FileNotFoundError(f"缺少 stages npz: {stages_path}")
-    print(f"[INFO] 输入 stages: {stages_path}")
+        raise FileNotFoundError(f"Missing stages npz: {stages_path}")
+    print(f"[INFO] Input stages: {stages_path}")
     loaded = load_stages_npz(stages_path)
 
     legacy_result_dir = stages_path.parent
@@ -1367,7 +1367,7 @@ def run_one(stages_path: Path) -> Path:
     )
     if orphan_exc:
         print(
-            f"[WARN] EXCLUDE_CHANNEL_NAMES 中有 {len(orphan_exc)} 个在数据中不存在: {orphan_exc[:15]}"
+            f"[WARN] EXCLUDE_CHANNEL_NAMES has {len(orphan_exc)} name(s) not in data: {orphan_exc[:15]}"
         )
 
     ch_slug = ""
@@ -1383,16 +1383,16 @@ def run_one(stages_path: Path) -> Path:
         )
         if miss_inc:
             print(
-                f"[WARN] INCLUDE_CHANNEL_NAMES 中有 {len(miss_inc)} 个在数据中未找到: {miss_inc}"
+                f"[WARN] INCLUDE_CHANNEL_NAMES has {len(miss_inc)} name(s) not found in data: {miss_inc}"
             )
         tok = _filename_token_for_removed_channels(removed_for_meta)
         if tok:
             ch_slug = tok
         print(
-            f"[INFO] 通道筛选: ICA 使用 {len(ch_names)} 路；未参与: {len(removed_for_meta)} 路"
+            f"[INFO] Channel selection: ICA uses {len(ch_names)} ch; excluded: {len(removed_for_meta)} ch"
         )
         if removed_for_meta:
-            print(f"       剔除: {removed_for_meta}")
+            print(f"       dropped: {removed_for_meta}")
 
     eff_exclude = _effective_exclude_ranges(EXCLUDE_TIME_RANGES_S)
     mask_keep = (
@@ -1403,23 +1403,23 @@ def run_one(stages_path: Path) -> Path:
     n_keep_ms = int(np.sum(mask_keep))
     if eff_exclude:
         print(
-            f"[INFO] EXCLUDE（仅解混后源能量）: {eff_exclude}；保留采样 {n_keep_ms}/{n_tot}"
+            f"[INFO] EXCLUDE (post-unmix source energy only): {eff_exclude}; kept samples {n_keep_ms}/{n_tot}"
         )
 
     out_dir = out_parent / _output_subdir_name(channel_selection_slug=ch_slug)
     out_dir.mkdir(parents=True, exist_ok=True)
-    print(f"[INFO] 输出: {out_dir}")
+    print(f"[INFO] Output: {out_dir}")
 
     raw_iir = _raw_from_array(xi, sfreq, ch_names, IIR_BEFORE_ICA)
     raw_asr = _raw_from_array(xa, sfreq, ch_names, IIR_BEFORE_ICA)
     raw_orica = _raw_from_array(xo, sfreq, ch_names, IIR_BEFORE_ICA)
 
-    # 只在 IIR 上拟合 ICA；ASR/ORICA 统一使用这同一套解混矩阵
+    # Fit ICA on IIR only; ASR/ORICA reuse this same unmixing matrix
     ica_iir, err = _fit_ica_on_raw(raw_iir, ICA_SEED, ICA_MAX_ITER)
     if ica_iir is None:
         raise RuntimeError(err or "ICA failed")
 
-    # 统计口径沿用 IIR 标签轴；源信号也统一来自同一套 IIR-ICA 投影
+    # Stats use the IIR label axis; source signals also come from the same IIR-ICA projection
     labels_out = label_components(raw_iir, ica_iir, method="iclabel")
     s1 = ica_iir.get_sources(raw_iir).get_data()
     s2 = ica_iir.get_sources(raw_asr).get_data()
@@ -1469,16 +1469,16 @@ def run_one(stages_path: Path) -> Path:
     n_bad_floor = int(np.sum(~iir_ok))
     if n_bad_floor:
         print(
-            f"[WARN] {n_bad_floor} 个 IC 的 ms_iir 低于 max(ms_iir)×{MIN_MS_IIR_REL_FLOOR}，"
-            f"相对 % 已置空；原始比值仍见 pct_*_raw 列。"
+            f"[WARN] {n_bad_floor} IC(s) have ms_iir below max(ms_iir)×{MIN_MS_IIR_REL_FLOOR}; "
+            f"relative % set to empty; raw ratios still in pct_*_raw columns."
         )
 
     ok_pct_stats = ok_ic_for_pct_stats_cap(pct_a, pct_o, MAX_PCT_VS_IIR_FOR_STATS)
     n_skip_pct = int(np.sum(~ok_pct_stats))
     if MAX_PCT_VS_IIR_FOR_STATS is not None and n_skip_pct > 0:
         print(
-            f"[INFO] {n_skip_pct} 个 IC 因 ASR 或 ORICA 相对 IIR %% > "
-            f"{MAX_PCT_VS_IIR_FOR_STATS} 不参与类均值 / reduction / 部分图"
+            f"[INFO] {n_skip_pct} IC(s) with ASR or ORICA vs IIR %% > "
+            f"{MAX_PCT_VS_IIR_FOR_STATS} excluded from class means / reduction / some plots"
         )
 
     pct_a_stat = np.asarray(pct_a, dtype=np.float64).copy()
@@ -1489,7 +1489,7 @@ def run_one(stages_path: Path) -> Path:
     full_csv = out_dir / "ic_source_ms_and_pct_fullrecording_per_ic.csv"
     with full_csv.open("w", newline="", encoding="utf-8-sig") as f:
         w = csv.writer(f)
-        w.writerow(["# ms_* 源均方；pct_* 相对 IIR；included_in_pct_stats 见 MAX_PCT_VS_IIR_FOR_STATS。"])
+        w.writerow(["# ms_* = source mean square; pct_* vs IIR; included_in_pct_stats see MAX_PCT_VS_IIR_FOR_STATS."])
         w.writerow(
             [
                 "ic_idx",
@@ -1665,7 +1665,7 @@ def run_one(stages_path: Path) -> Path:
     if WINDOW_SEC > 0:
         win_samp = int(round(WINDOW_SEC * sfreq))
         if win_samp <= 0:
-            print("[WARN] WINDOW_SEC 过小，跳过分窗输出")
+            print("[WARN] WINDOW_SEC too small; skipping per-window outputs")
         else:
             n_win = n_tot // win_samp
             win_csv = out_dir / "ic_energy_pct_vs_iir_by_class_per_window.csv"
@@ -1876,7 +1876,7 @@ def run_one(stages_path: Path) -> Path:
 
     if eff_exclude:
         if not np.any(mask_keep):
-            print("[WARN] EXCLUDE 后无剩余采样，跳过 exclude_bad_segments 版 CSV/图")
+            print("[WARN] No samples left after EXCLUDE; skipping exclude_bad_segments CSV/plots")
         else:
             ms_i_e = mean_square_per_ic(s1, mask_keep)
             ms_a_e = mean_square_per_ic(s2, mask_keep)
@@ -1904,7 +1904,7 @@ def run_one(stages_path: Path) -> Path:
                 w = csv.writer(f)
                 w.writerow(
                     [
-                        "# EXCLUDE 时间 mask 后源 MS；列与 ic_source_ms_and_pct_fullrecording_per_ic 相同。",
+                        "# Source MS after EXCLUDE time mask; columns match ic_source_ms_and_pct_fullrecording_per_ic.",
                     ]
                 )
                 w.writerow(
@@ -2053,7 +2053,7 @@ def main() -> None:
         print(f"[FAIL] {stages_path}: {e}")
         traceback.print_exc()
         raise
-    print("\n" + "=" * 60 + "\n摘要\n" + "=" * 60)
+    print("\n" + "=" * 60 + "\nSummary\n" + "=" * 60)
     print(f"  OK  {stages_path.name}  -> {out}")
 
 

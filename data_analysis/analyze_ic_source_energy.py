@@ -16,7 +16,7 @@ from MS / pct stats (``asr_calibration_seconds`` from ``config.yaml``, default 1
 
 Usage
 -----
-    python benchmarks/analyze_results.py --run-dir benchmarks/result/all/s05_iclabel_interval__asr_fit
+    python data_analysis/analyze_ic_source_energy.py --run-dir benchmarks/result/all/s05_iclabel_interval__asr_fit
 """
 
 from __future__ import annotations
