@@ -237,3 +237,42 @@ Reports raw p-values and median-difference effect sizes for each measure.
 | Bad-segment exclusion | Manual per-subject `EXCLUDE_TIME_RANGES_S` | Not implemented — noted as future milestone |
 | 60 Hz notch filter | Separate online notch stage | Folded into IIR `h_freq=50.0` (no separate notch) |
 | GUI / LSL streaming | Required for online run | Not required for benchmarking (uses `ArrayStream`) |
+
+### Dry-electrode cued-artifact dataset (`yuan2019/`)
+
+Scripts that run the pipeline on the Yuan 2019 dry-electrode cued-artifact
+recordings (Cognionics Quick-30, 10 subjects, 29 scalp channels, 500 Hz) and
+evaluate it per condition. **The dataset is unpublished and is not part of
+this repository**; only the code is here. Extra dependencies: `pyxdf`,
+`pandas`.
+
+```bash
+export PYORICA_YUAN2019_DATA=/path/to/raw      # sXX_eye.xdf, sXX_motion.xdf
+# optional: export PYORICA_YUAN2019_RESULTS=/path/to/results
+#           (default: benchmarks/results/, git-ignored)
+
+# 0. marker timeline + channel QC (no pipeline run)
+python benchmarks/analysis/yuan2019/yuan2019_qc.py
+
+# 1. run the pipeline once per subject (reference config) and save the
+#    IIR / ASR / full-pipeline streams, window-level ICLabel output and
+#    ORICA mixing matrices, and a whole-session evaluation ICA
+python benchmarks/analysis/yuan2019/yuan2019_primary.py            # --calib first120 (default)
+
+# 2. evaluation ICA fitted separately per condition (no pipeline rerun)
+python benchmarks/analysis/yuan2019/yuan2019_percond_ica.py
+python benchmarks/analysis/yuan2019/yuan2019_percond_ica.py --describe
+```
+
+| Script | What it does |
+|---|---|
+| `yuan2019_qc.py` | xdf loader (`load`), marker pairing into condition blocks (`blocks`), per-channel QC tables |
+| `yuan2019_primary.py` | Motion recording, 500 → 250 Hz, `benchmarks/config/reference.yaml`. Calibration variants (`--calib`): `first120` = first 120 s of the opening eyes-closed rest (causal, default); `eye_rest` = rest blocks of the separate eye recording; `eor_same` = eyes-open-rest blocks of the same recording (non-causal). `--part eye` runs the eye-artifact recording. Output: `<results>/yuan2019_primary_<calib>/{subj}_stages.npz`, `{subj}_windows.npz`, `{subj}_eval_ica.fif`, `yuan_retention_ics.csv` |
+| `yuan2019_percond_ica.py` | For each subject and condition (`ecr` eyes-closed rest, `odd` seated oddball, `eor` eyes-open rest, `shh` head shake, `shv` head nod, `str` standing, `wlk` walk): concatenate that condition's IIR-stage blocks, fit extended Infomax (seed 42, max_iter 500), label with ICLabel, project the three streams through that unmixing, and write per-block component mean squares to `yuan_percond_ics.csv` |
+
+Retention of a component is `ms_asr / ms_iir` (ASR only) or
+`ms_online / ms_iir` (full pipeline). Repeated blocks of a condition are
+combined by their median, then components of a class by their median within
+subject. Signal amplitude differs strongly between conditions, so retention
+is reported per condition and not pooled over the session. One subject's
+walking blocks (s08, signal lost) are excluded in the scripts.
